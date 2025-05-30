@@ -1,15 +1,16 @@
 #include <iostream>
 #include <omp.h>
 
-//  int num_threads = 0;
-//std::cout << "How many threads do you want to use? " << std::endl;
-//std::cin >> num_threads;
-
 int main(){
 
-    #pragma omp parallel
+    int thread_count = 0;
+    std::cout << "How many threads do you want to use? " << std::endl;
+    std::cin >> thread_count;
+
+
+    #pragma omp parallel num_threads(thread_count)
     {
-        #pragma omp critical 
+        #pragma omp critical // This ensures that only one thread prints at a time
         {
             std::cout << "Hello World from thread " << omp_get_thread_num() << std::endl;
         }
