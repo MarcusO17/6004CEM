@@ -2,40 +2,60 @@
 #include <vector>
 #include <omp.h>
 #include <unistd.h>
-#include <chrono> 
 
-
-void verify_vectors(const std::vector<int>& v1, const std::vector<int>& v2, const std::string& name) {
-    if (v1.size() != v2.size()) {
-        std::cout << "ERROR "<< name <<" : Vector sizes differ! "
-                  << v1.size() << " vs " << v2.size() << std::endl;
+void sequential_add(std::vector<int>& a, std::vector<int>& b, std::vector<int>& c) {
+    for (int i = 0; i < a.size(); i++) {
+        /*if (i % 1000 == 0) {
+            sleep(0.001); // Simulate uneven workload
+        }*/
+        c[i] = a[i] + b[i];
     }
-    for (size_t i = 0; i < v1.size(); ++i) {
-        if (v1[i] != v2[i]) {
-            std::cout << "ERROR "<< name <<" : Mismatch at index " << i << ". "
-                      << "Expected: " << v2[i] 
-                      << ", Got: " << v1[i] << std::endl;
-        }
-    }
-    std::cout << "Verification for " << name << ": SUCCESS! Results match." << std::endl;
 }
 
+void parallel_add_static(std::vector<int>& a, std::vector<int>& b, std::vector<int>& c,int chunk_size = -1) {
+    if (chunk_size < 0 ){
+        chunk_size = a.size()/4;
+    }// 4 threads as set in main
+
+    #pragma omp parallel default(shared)
+    {
+        #pragma omp for schedule(static, chunk_size)
+        for (int i = 0; i < a.size(); i++) {
+            /*if (i % 1000 == 0) {
+                sleep(0.001); // Simulate uneven workload
+            }*/
+            c[i] = a[i] + b[i];
+        }
+    }
+}
+
+void parallel_add_dynamic(std::vector<int>& a, std::vector<int>& b, std::vector<int>& c,int chunk_size = 1) {
+    #pragma omp parallel default(shared)
+    {
+        #pragma omp for schedule(dynamic, chunk_size)
+        for (int i = 0; i < a.size(); i++) {
+            /*if (i % 1000 == 0) {
+                sleep(0.001); // Simulate uneven workload
+            }*/
+            c[i] = a[i] + b[i];
+        }
+    }
+}
 
 int main() 
 {
-
-    omp_set_num_threads(4); // Set the number of threads to 4
+    omp_set_num_threads(4); 
 
     long n = 10000000;
+
     std::vector<int> a(n,0); 
     std::vector<int> b(n,0);
     std::vector<int> c_static(n,0);
     std::vector<int> c_dynamic(n,0);
     std::vector<int> c_seq(n,0);
 
-    #pragma omp parallel  // Separate parallel region for vector initialization
+    #pragma omp parallel
     {
-        // Initialize vectors in parallel
         #pragma omp for
         for (int i = 0; i < n; i++) {
             a[i] = i;
@@ -43,58 +63,28 @@ int main()
         }
     }
 
-    auto start_time = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < n; i++) {
-         /*if (i % 1000 == 0) {
-                sleep(0.001); // Simulate uneven workload
-            }*/
-            c_seq[i] = a[i] + b[i];
-    }
-    auto end_time = std::chrono::high_resolution_clock::now();
+    double start_time, end_time, elapsed_time;
 
-    std::chrono::duration<double> elapsed_time = end_time - start_time;
-    std::cout << "Time taken for sequential addition: " << elapsed_time.count() << " seconds" << std::endl;
-
-
-    start_time = std::chrono::high_resolution_clock::now();
-    #pragma omp parallel  //Seperate parallel region for vector addition
-    {
-        //Vector Addition
-        #pragma omp for schedule(static)
-        for (int i = 0; i < n; i++) {
-             /*if (i % 1000 == 0) {
-                sleep(0.001); // Simulate uneven workload
-            }*/
-            c_static[i] = a[i] + b[i];
-        }
-    }
-    end_time = std::chrono::high_resolution_clock::now();
-
+    // Sequential Addition
+    start_time = omp_get_wtime();
+    sequential_add(a, b, c_seq);
+    end_time = omp_get_wtime();
     elapsed_time = end_time - start_time;
-    std::cout << "Time taken for parallel with static (chunk size = " << n / 4 << ") scheduling addition: " << elapsed_time.count() << " seconds" << std::endl;
+    std::cout << "Time taken for sequential addition: " << elapsed_time << " seconds" << std::endl;
 
-
-    start_time = std::chrono::high_resolution_clock::now();
-    #pragma omp parallel  //Seperate parallel region for vector addition
-    {
-        //Vector Addition
-        #pragma omp for schedule(dynamic)
-        for (int i = 0; i < n; i++) {
-            /*if (i % 1000 == 0) {
-                sleep(0.001); // Simulate uneven workload
-            }*/
-            c_dynamic[i] = a[i] + b[i];
-        }
-    }
-    end_time = std::chrono::high_resolution_clock::now();
-
+    // Parallel Addition with static scheduling
+    start_time = omp_get_wtime();
+    parallel_add_static(a, b, c_static);
+    end_time = omp_get_wtime();
     elapsed_time = end_time - start_time;
-    std::cout << "Time taken for parallel with dynamic " << "(chunk size = 1)" << " schedulling addition: " << elapsed_time.count() << " seconds" << std::endl;
+    std::cout << "Time taken for parallel with static (chunk size = " << n / 4 << ") scheduling addition: " << elapsed_time << " seconds" << std::endl;
 
-    // Verify the last element of vector c
-    verify_vectors(c_dynamic, c_seq, "Dynamic");
-    verify_vectors(c_static, c_seq, "Static");
-    
+    // Parallel Addition with dynamic scheduling
+    start_time = omp_get_wtime();
+    parallel_add_dynamic(a, b, c_dynamic);
+    end_time = omp_get_wtime();
+    elapsed_time = end_time - start_time;
+    std::cout << "Time taken for parallel with dynamic (chunk size = 1) schedulling addition: " << elapsed_time << " seconds" << std::endl;
 
     return 0;
 }
