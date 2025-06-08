@@ -6,7 +6,7 @@
 void sequential_add(std::vector<int>& a, std::vector<int>& b, std::vector<int>& c,bool sleep_enabled = true) {
     for (int i = 0; i < a.size(); i++) {
         if (sleep_enabled && i % 1000 == 0) {
-            sleep(0.01); // Simulate uneven workload
+            sleep(0.1); // Simulate uneven workload
         }
         c[i] = a[i] + b[i];
     }
@@ -19,10 +19,10 @@ void parallel_add_static(std::vector<int>& a, std::vector<int>& b, std::vector<i
 
     #pragma omp parallel default(shared)
     {
-        #pragma omp for schedule(static)
+        #pragma omp for schedule(static, chunk_size)
         for (int i = 0; i < a.size(); i++) {
             if (sleep_enabled && i % 1000 == 0) {
-                sleep(0.01); // Simulate uneven workload
+                sleep(0.1); // Simulate uneven workload
             }
             c[i] = a[i] + b[i];
         }
@@ -36,10 +36,10 @@ void parallel_add_dynamic(std::vector<int>& a, std::vector<int>& b, std::vector<
    
     #pragma omp parallel default(shared)
     {
-        #pragma omp for schedule(dynamic)
+        #pragma omp for schedule(dynamic,chunk_size)
         for (int i = 0; i < a.size(); i++) {
             if (sleep_enabled && i % 1000 == 0) {
-                sleep(0.01); // Simulate uneven workload
+                sleep(0.1); // Simulate uneven workload
             }
             c[i] = a[i] + b[i];
         }
@@ -51,7 +51,7 @@ int main()
     omp_set_num_threads(4); 
 
     long n_sizes[4] = {10000, 100000, 1000000, 10000000}; // Different sizes for testing
-    int chunk_sizes[5] = {1,2,4,8,16};
+    int chunk_sizes[7] = {1,2,4,8,16,32,64};
 
     std::vector<int> a; 
     std::vector<int> b;
@@ -90,13 +90,13 @@ int main()
 
             // Parallel Addition with static scheduling
             start_time = omp_get_wtime();
-            parallel_add_static(a, b, c_static, chunk_size);
+            parallel_add_static(a, b, c_static, chunk_size, true);
             end_time = omp_get_wtime();
             static_time = end_time - start_time;
 
             // Parallel Addition with dynamic scheduling
             start_time = omp_get_wtime();
-            parallel_add_dynamic(a, b, c_dynamic, chunk_size);
+            parallel_add_dynamic(a, b, c_dynamic, chunk_size, true);
             end_time = omp_get_wtime();
             dynamic_time = end_time - start_time;
 
