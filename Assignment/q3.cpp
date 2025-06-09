@@ -36,7 +36,7 @@ int main() {
 
     int matrix_sizes[] = {50, 500};      // N x N 
     int thread_counts[] = {1, 4, 8, 16};
-    const int NUM_RUNS = 1;  
+    const int NUM_RUNS = 10;  
 
 
     // Populate matrices
@@ -46,7 +46,7 @@ int main() {
         std::vector<std::vector<int>> B = matrixPopulator(N, N);
         std::vector<std::vector<int>> C(N, std::vector<int>(N));
 
-        std::cout << "Outer Loop Parallel Multiplication" << std::endl << std::endl;
+        std::cout << "Matrix Size,Threads,Method,Time (seconds)" << std::endl;
 
         for (int num_threads : thread_counts) {
             double total_time_outer = 0.0;
@@ -60,8 +60,6 @@ int main() {
             double avg_time_outer = (total_time_outer / NUM_RUNS); 
             std::cout << N << "," << num_threads << ",Outer," << avg_time_outer << std::endl;
         }
-        
-        std::cout << "Inner Loop Parallel Multiplication" << std::endl << std::endl;
 
         for (int num_threads : thread_counts) {
             omp_set_num_threads(num_threads); 
@@ -76,8 +74,6 @@ int main() {
             double avg_time_inner = (total_time_inner / NUM_RUNS); 
             std::cout << N << "," << num_threads << ",Inner," << avg_time_inner << std::endl;
         }
-
-        std::cout << "Parallel Multiplication" << std::endl << std::endl;
 
         for (int num_threads : thread_counts) {
             omp_set_num_threads(num_threads); 
@@ -141,11 +137,10 @@ void multiply_inner_loop_parallel(
     std::vector<std::vector<int>>& C,
     int N,int num_threads) {
     for (int i = 0; i < N; ++i) {
+        #pragma omp parallel for schedule(static) num_threads(num_threads) 
         for (int j = 0; j < N; ++j) {
             int sum_val = 0;
-            #pragma omp parallel for reduction(+:sum_val) schedule(static) num_threads(num_threads) 
             for (int k = 0; k < N; ++k) {
-                //printf("Thread %d processing A[%d][%d] * B[%d][%d]\n", omp_get_thread_num(), i, k, k, j);
                 sum_val += A[i][k] * B[k][j];
             }
             C[i][j] = sum_val;
