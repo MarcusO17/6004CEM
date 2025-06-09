@@ -3,11 +3,8 @@
 #include <omp.h>
 #include <unistd.h>
 
-void sequential_add(std::vector<int>& a, std::vector<int>& b, std::vector<int>& c,bool sleep_enabled = true) {
+void sequential_add(std::vector<int>& a, std::vector<int>& b, std::vector<int>& c) {
     for (int i = 0; i < a.size(); i++) {
-        if (sleep_enabled && i % 1000 == 0) {
-            sleep(0.1); // Simulate uneven workload
-        }
         c[i] = a[i] + b[i];
     }
 }
@@ -43,8 +40,7 @@ int main()
 {
     omp_set_num_threads(4); 
 
-    long n_sizes[5] = {10000,100000, 1000000, 10000000,100000000}; // Different sizes for testing
-    int chunk_sizes[4] = {1,4,16,64};
+    long n_sizes[7] = {10,100,1000,10000,100000, 1000000, 10000000}; // Different sizes for testing
 
     std::vector<int> a; 
     std::vector<int> b;
