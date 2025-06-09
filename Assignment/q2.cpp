@@ -12,35 +12,28 @@ void sequential_add(std::vector<int>& a, std::vector<int>& b, std::vector<int>& 
     }
 }
 
-void parallel_add_static(std::vector<int>& a, std::vector<int>& b, std::vector<int>& c,int chunk_size = -1,bool sleep_enabled = true) {
-    if (chunk_size < 0 ){
-        chunk_size = a.size()/4;
-    }// 4 threads as set in main
+void parallel_add_static(std::vector<int>& a, std::vector<int>& b, std::vector<int>& c) {
 
-    #pragma omp parallel default(shared)
+    #pragma omp parallel default(shared) num_threads(4)
     {
-        #pragma omp for schedule(static, chunk_size)
+        #pragma omp for schedule(static) 
         for (int i = 0; i < a.size(); i++) {
-            if (sleep_enabled && i % 1000 == 0) {
+            /*if (i % 1000 == 0) {
                 sleep(0.1); // Simulate uneven workload
-            }
+            }*/
             c[i] = a[i] + b[i];
         }
     }
 }
 
-void parallel_add_dynamic(std::vector<int>& a, std::vector<int>& b, std::vector<int>& c,int chunk_size = 1,bool sleep_enabled = true) {
-    if (chunk_size < 1 ){
-        chunk_size = 1; // Minimum chunk size for dynamic scheduling
-    }
-   
-    #pragma omp parallel default(shared)
+void parallel_add_dynamic(std::vector<int>& a, std::vector<int>& b, std::vector<int>& c) {
+    #pragma omp parallel default(shared) num_threads(4)
     {
-        #pragma omp for schedule(dynamic,chunk_size)
+        #pragma omp for schedule(dynamic)
         for (int i = 0; i < a.size(); i++) {
-            if (sleep_enabled && i % 1000 == 0) {
+            /*if (sleep_enabled && i % 1000 == 0) {
                 sleep(0.1); // Simulate uneven workload
-            }
+            }*/
             c[i] = a[i] + b[i];
         }
     }
@@ -50,8 +43,8 @@ int main()
 {
     omp_set_num_threads(4); 
 
-    long n_sizes[4] = {10000, 100000, 1000000, 10000000}; // Different sizes for testing
-    int chunk_sizes[7] = {1,2,4,8,16,32,64};
+    long n_sizes[5] = {10000,100000, 1000000, 10000000,100000000}; // Different sizes for testing
+    int chunk_sizes[4] = {1,4,16,64};
 
     std::vector<int> a; 
     std::vector<int> b;
@@ -59,9 +52,9 @@ int main()
     std::vector<int> c_dynamic;
     std::vector<int> c_seq;
 
-    std::cout << "iteration,seq_time,static_time,dynamic_time,chunk_size" << std::endl;
+    std::cout << "iteration,seq_time,static_time,dynamic_time" << std::endl;
 
-    for (int size_idx = 0; size_idx < 4; ++size_idx) {
+    for (int size_idx = 0; size_idx < sizeof(n_sizes)/sizeof(n_sizes[0]); ++size_idx) {
 
         long n = n_sizes[size_idx];
         a.assign(n, 0);
@@ -77,8 +70,8 @@ int main()
             b[i] = i;
         }
 
-        for (int chunk_idx = 0; chunk_idx < 5; ++chunk_idx) {
-            int chunk_size = n/chunk_sizes[chunk_idx];
+        //for (int chunk_idx = 0; chunk_idx < 5; ++chunk_idx) {
+            //int chunk_size = n/chunk_sizes[chunk_idx];
 
             double start_time, end_time, seq_time, static_time, dynamic_time;
 
@@ -90,18 +83,18 @@ int main()
 
             // Parallel Addition with static scheduling
             start_time = omp_get_wtime();
-            parallel_add_static(a, b, c_static, chunk_size, true);
+            parallel_add_static(a, b, c_static);
             end_time = omp_get_wtime();
             static_time = end_time - start_time;
 
             // Parallel Addition with dynamic scheduling
             start_time = omp_get_wtime();
-            parallel_add_dynamic(a, b, c_dynamic, chunk_size, true);
+            parallel_add_dynamic(a, b, c_dynamic);
             end_time = omp_get_wtime();
             dynamic_time = end_time - start_time;
 
-            std::cout << n << "," << seq_time << "," << static_time << "," << dynamic_time << "," << chunk_size << std::endl;
-        }
+            std::cout << n << "," << seq_time << "," << static_time << "," << dynamic_time << "," << std::endl;
+        //}
     }
 
     return 0;
