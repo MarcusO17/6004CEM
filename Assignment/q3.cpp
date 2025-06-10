@@ -32,7 +32,7 @@ void multiply_parallel(
 
 int main() {
 
-    srand(time(0));
+    srand(time(0)); // Seed for random number generation
 
     int matrix_sizes[] = {50, 500};      // N x N 
     int thread_counts[] = {1, 4, 8, 16};
@@ -41,7 +41,7 @@ int main() {
 
     // Populate matrices
     for (int N : matrix_sizes) {
-
+        
         std::vector<std::vector<int>> A = matrixPopulator(N, N);
         std::vector<std::vector<int>> B = matrixPopulator(N, N);
         std::vector<std::vector<int>> C(N, std::vector<int>(N));
@@ -49,6 +49,7 @@ int main() {
         std::cout << "Matrix Size,Threads,Method,Time (seconds)" << std::endl;
 
         for (int num_threads : thread_counts) {
+            omp_set_num_threads(num_threads); 
             double total_time_outer = 0.0;
 
             for (int run = 0; run < NUM_RUNS; ++run) {
@@ -123,7 +124,6 @@ void multiply_outer_loop_parallel(
     #pragma omp parallel for shared(A, B, C, N) schedule(static) num_threads(num_threads)
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
-            C[i][j] = 0;
             for (int k = 0; k < N; ++k) {
                 C[i][j] += A[i][k] * B[k][j];
             }
@@ -139,11 +139,9 @@ void multiply_inner_loop_parallel(
     for (int i = 0; i < N; ++i) {
         #pragma omp parallel for schedule(static) num_threads(num_threads) 
         for (int j = 0; j < N; ++j) {
-            int sum_val = 0;
             for (int k = 0; k < N; ++k) {
-                sum_val += A[i][k] * B[k][j];
+                C[i][j]  += A[i][k] * B[k][j];
             }
-            C[i][j] = sum_val;
         }
     }
 }
@@ -158,7 +156,6 @@ void multiply_parallel(
         #pragma omp for collapse(2) schedule(static) 
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < N; ++j) {
-                C[i][j] = 0;
                 for (int k = 0; k < N; ++k) {
                     C[i][j] += A[i][k] * B[k][j];
                 }
