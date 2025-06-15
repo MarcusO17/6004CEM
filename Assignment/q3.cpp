@@ -94,6 +94,20 @@ int main() {
             std::cout << N << "," << num_threads << ",Outer," << avg_time_outer << std::endl;
         }
 
+        for (int num_threads : thread_counts) {
+            omp_set_num_threads(num_threads); 
+            double total_time_sequential = 0.0;
+
+            for (int run = 0; run < NUM_RUNS; ++run) {
+                double start_time = omp_get_wtime();
+                multiply_sequential(A, B, C, N);
+                double end_time = omp_get_wtime();
+                total_time_sequential += (end_time - start_time);
+            }
+            double avg_time_sequential = (total_time_sequential / NUM_RUNS); 
+            std::cout << N << "," << num_threads << ",sequential," << avg_time_sequential << std::endl;
+        }
+
      }
 
     
@@ -173,3 +187,18 @@ void multiply_parallel(
     }
 }
 
+
+void multiply_sequential(
+     std::vector<std::vector<int>>& A,
+     std::vector<std::vector<int>>& B,
+    std::vector<std::vector<int>>& C,
+    int N) {
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            C[i][j] = 0;
+            for (int k = 0; k < N; ++k) {
+                C[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+}
