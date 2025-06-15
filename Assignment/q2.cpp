@@ -74,6 +74,7 @@ int main()
         for (int chunk_idx = 0; chunk_idx < 5; ++chunk_idx) {
             int chunk_size = chunk_sizes[chunk_idx];
 
+            //Paste this outside for testing N
             long n = 1000;
             a.assign(n, 0);
             b.assign(n, 0);
