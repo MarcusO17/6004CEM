@@ -10,35 +10,29 @@ std::vector<std::vector<int>> matrixPopulator(int r, int c);
 void multiply_outer_loop_parallel(
      std::vector<std::vector<int>>& A,
      std::vector<std::vector<int>>& B,
-    std::vector<std::vector<int>>C,
-    int N, int num_threads);
+    std::vector<std::vector<int>>& C,
+    int N);
 
 // Parallelizing only inner loop 
 void multiply_inner_loop_parallel(
      std::vector<std::vector<int>>& A,
      std::vector<std::vector<int>>& B,
-    std::vector<std::vector<int>>C,
-    int N, int num_threads);
+    std::vector<std::vector<int>>& C,
+    int N);
 
 
 // Parallel matrix multiplication
 void multiply_parallel(
      std::vector<std::vector<int>>& A,
      std::vector<std::vector<int>>& B,
-    std::vector<std::vector<int>>C,
-    int N, int num_threads);
+    std::vector<std::vector<int>>& C,
+    int N);
 
-void multiply_seq(
-        std::vector<std::vector<int>>& A,
-        std::vector<std::vector<int>>& B,
-       std::vector<std::vector<int>> C,
-       int N);
-   
 
 
 int main() {
 
-    srand(time(0)); // Seed for random number generation
+    srand(time(0));
 
     int matrix_sizes[] = {50, 500};      // N x N 
     int thread_counts[] = {1, 4, 8, 16};
@@ -47,12 +41,12 @@ int main() {
 
     // Populate matrices
     for (int N : matrix_sizes) {
-        
+
         std::vector<std::vector<int>> A = matrixPopulator(N, N);
         std::vector<std::vector<int>> B = matrixPopulator(N, N);
         std::vector<std::vector<int>> C(N, std::vector<int>(N));
 
-        std::cout << "Matrix Size,Threads,Method,Time (seconds)" << std::endl;
+        std::cout << "Outer Loop Parallel Multiplication" << std::endl << std::endl;
 
         for (int num_threads : thread_counts) {
             omp_set_num_threads(num_threads); 
@@ -60,7 +54,23 @@ int main() {
 
             for (int run = 0; run < NUM_RUNS; ++run) {
                 double start_time = omp_get_wtime();
-                multiply_outer_loop_parallel(A, B, C, N,num_threads);
+                multiply_outer_loop_parallel(A, B, C, N);
+                double end_time = omp_get_wtime();
+                total_time_outer += (end_time - start_time);
+            }
+            double avg_time_outer = (total_time_outer / NUM_RUNS); 
+            std::cout << N << "," << num_threads << ",Outer," << avg_time_outer << std::endl;
+        }
+        
+        std::cout << "Inner Loop Parallel Multiplication" << std::endl << std::endl;
+
+        for (int num_threads : thread_counts) {
+            omp_set_num_threads(num_threads); 
+            double total_time_outer = 0.0;
+
+            for (int run = 0; run < NUM_RUNS; ++run) {
+                double start_time = omp_get_wtime();
+                multiply_inner_loop_parallel(A, B, C, N);
                 double end_time = omp_get_wtime();
                 total_time_outer += (end_time - start_time);
             }
@@ -68,46 +78,20 @@ int main() {
             std::cout << N << "," << num_threads << ",Outer," << avg_time_outer << std::endl;
         }
 
-        for (int num_threads : thread_counts) {
-            omp_set_num_threads(num_threads); 
-            double total_time_inner = 0.0;
-
-            for (int run = 0; run < NUM_RUNS; ++run) {
-                double start_time = omp_get_wtime();
-                multiply_inner_loop_parallel(A, B, C, N,num_threads);
-                double end_time = omp_get_wtime();
-                total_time_inner += (end_time - start_time);
-            }
-            double avg_time_inner = (total_time_inner / NUM_RUNS); 
-            std::cout << N << "," << num_threads << ",Inner," << avg_time_inner << std::endl;
-        }
+        std::cout << "Parallel Multiplication" << std::endl << std::endl;
 
         for (int num_threads : thread_counts) {
             omp_set_num_threads(num_threads); 
-            double total_time_parallel = 0.0;
+            double total_time_outer = 0.0;
 
             for (int run = 0; run < NUM_RUNS; ++run) {
                 double start_time = omp_get_wtime();
-                multiply_parallel(A, B, C, N,num_threads);
+                multiply_parallel(A, B, C, N);
                 double end_time = omp_get_wtime();
-                total_time_parallel += (end_time - start_time);
+                total_time_outer += (end_time - start_time);
             }
-            double avg_time_parallel = (total_time_parallel / NUM_RUNS); 
-            std::cout << N << "," << num_threads << ",Parallel," << avg_time_parallel << std::endl;
-        }
-
-        for (int num_threads : thread_counts) {
-            omp_set_num_threads(num_threads); 
-            double total_time_seq = 0.0;
-
-            for (int run = 0; run < NUM_RUNS; ++run) {
-                double start_time = omp_get_wtime();
-                multiply_seq(A, B, C, N);
-                double end_time = omp_get_wtime();
-                total_time_seq += (end_time - start_time);
-            }
-            double avg_time_seq = (total_time_seq/ NUM_RUNS); 
-            std::cout << N << "," << num_threads << ",Sequential," << avg_time_seq<< std::endl;
+            double avg_time_outer = (total_time_outer / NUM_RUNS); 
+            std::cout << N << "," << num_threads << ",Outer," << avg_time_outer << std::endl;
         }
 
      }
@@ -138,12 +122,13 @@ std::vector<std::vector<int>> matrixPopulator(int r, int c) {
 void multiply_outer_loop_parallel(
      std::vector<std::vector<int>>& A,
      std::vector<std::vector<int>>& B,
-    std::vector<std::vector<int>> C,
-    int N,int num_threads) {
+    std::vector<std::vector<int>>& C,
+    int N) {
 
-    #pragma omp parallel for shared(A, B, C, N) schedule(static) num_threads(num_threads)
+    #pragma omp parallel for shared(A, B, C, N) schedule(static)
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
+            C[i][j] = 0;
             for (int k = 0; k < N; ++k) {
                 C[i][j] += A[i][k] * B[k][j];
             }
@@ -154,28 +139,32 @@ void multiply_outer_loop_parallel(
 void multiply_inner_loop_parallel(
      std::vector<std::vector<int>>& A,
      std::vector<std::vector<int>>& B,
-    std::vector<std::vector<int>> C,
-    int N,int num_threads) {
+    std::vector<std::vector<int>>& C,
+    int N) {
     for (int i = 0; i < N; ++i) {
-        #pragma omp parallel for schedule(static) num_threads(num_threads) 
         for (int j = 0; j < N; ++j) {
+            int sum_val = 0;
+            #pragma omp parallel for shared(A, B, N, i, j) reduction(+:sum_val) schedule(static)
             for (int k = 0; k < N; ++k) {
-                C[i][j]  += A[i][k] * B[k][j];
+                sum_val += A[i][k] * B[k][j];
             }
+            C[i][j] = sum_val;
         }
     }
 }
 
+
 void multiply_parallel(
      std::vector<std::vector<int>>& A,
      std::vector<std::vector<int>>& B,
-    std::vector<std::vector<int>> C,
-    int N,int num_threads) {
-    #pragma omp parallel shared(A, B, C, N) num_threads(num_threads)
+    std::vector<std::vector<int>>& C,
+    int N) {
+    #pragma omp parallel shared(A, B, C, N)
     {
-        #pragma omp for collapse(2) schedule(static) 
+        #pragma omp for collapse(2) schedule(static)
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < N; ++j) {
+                C[i][j] = 0;
                 for (int k = 0; k < N; ++k) {
                     C[i][j] += A[i][k] * B[k][j];
                 }
@@ -184,16 +173,3 @@ void multiply_parallel(
     }
 }
 
-void multiply_seq(
-    std::vector<std::vector<int>>& A,
-    std::vector<std::vector<int>>& B,
-   std::vector<std::vector<int>> C,
-   int N) {
-       for (int i = 0; i < N; ++i) {
-           for (int j = 0; j < N; ++j) {
-               for (int k = 0; k < N; ++k) {
-                   C[i][j] += A[i][k] * B[k][j];
-               }
-           }
-       }
-}
