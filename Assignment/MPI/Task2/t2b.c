@@ -1,8 +1,8 @@
-#include <mpi.h>   // MPI_Init, MPI_Comm_size, MPI_Comm_rank, MPI_Finalize, MPI_COMM_WORLD, MPI_Send, MPI_Recv, MPI_Status
-#include <stdio.h> // printf
-#include <string.h> // strcpy, sprintf, strlen
+#include <mpi.h>   
+#include <stdio.h> 
+#include <string.h> 
 
-#define MAX_MESSAGE_LENGTH 100 // Define a maximum length for messages
+#define MAX_MESSAGE_LENGTH 100 
 
 int main(int argc, char *argv[]) {
     int rank; // The rank (ID) of the current process
@@ -16,18 +16,15 @@ int main(int argc, char *argv[]) {
         // Master process
         printf("Master: Hello slaves give me your messages\n");
 
-        if (size == 1) {
-            printf("Master: No slaves to receive messages from.\n");
-        } else {
-            for (int i = 1; i < size; i++) {
-                char received_message[MAX_MESSAGE_LENGTH];
-                MPI_Status status;
+        for (int i = 1; i < size; i++) {
+            char received_message[MAX_MESSAGE_LENGTH];
+            MPI_Status status;
 
-                MPI_Recv(received_message, MAX_MESSAGE_LENGTH, MPI_CHAR, i, 0, MPI_COMM_WORLD, &status);
-                printf("Master: Message received from process %d : %s\n", i, received_message);
-            }
-            printf("Master: All messages received.\n");
+            MPI_Recv(received_message, MAX_MESSAGE_LENGTH, MPI_CHAR, i, 0, MPI_COMM_WORLD, &status);
+            printf("Master: Message received from process %d : %s\n", i, received_message);
         }
+        printf("Master: All messages received.\n");
+        
     } else {
         // Slave processes
         char message_to_send[MAX_MESSAGE_LENGTH];
@@ -39,13 +36,7 @@ int main(int argc, char *argv[]) {
             sprintf(message_to_send, "Hello, I am Mary");
         } else if (rank == 3) {
             sprintf(message_to_send, "Hello, I am Susan");
-        } else {
-            // Generic message for other slaves
-            sprintf(message_to_send, "Hello, I am slave %d", rank);
         }
-
-        // Send the string message to the master (rank 0)
-        // The count is strlen(message_to_send) + 1 to include the null terminator
         MPI_Send(message_to_send, strlen(message_to_send) + 1, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
     }
 
