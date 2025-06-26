@@ -4,7 +4,6 @@
 int main(int argc, char *argv[]) {
     int rank; // The rank (ID) of the current process
     int size; // The total number of processes in the communicator
-    int name_len;
 
 
     MPI_Init(&argc, &argv);
