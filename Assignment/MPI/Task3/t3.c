@@ -1,9 +1,8 @@
-#include <mpi.h>   // MPI_Init, MPI_Comm_size, MPI_Comm_rank, MPI_Finalize, MPI_COMM_WORLD, MPI_Send, MPI_Recv, MPI_Status
-#include <stdio.h> // printf
-#include <string.h> // strcpy, sprintf, strlen
+#include <mpi.h>  
+#include <stdio.h> 
+#include <string.h> 
 
-#define MAX_MESSAGE_LENGTH 100 // Define a maximum length for messages
-
+#define MAX_MESSAGE_LENGTH 100 
 int main(int argc, char *argv[]) {
     int rank; // The rank (ID) of the current process
     int size; // The total number of processes in the communicator
@@ -14,39 +13,24 @@ int main(int argc, char *argv[]) {
 
     if (rank == 0) {
         // Master process
-        printf("Master: Hello slaves give me your messages\n");
 
-        if (size == 1) {
-            printf("Master: No slaves to receive messages from.\n");
-        } else {
-            for (int i = 1; i < size; i++) {
-                char received_message[MAX_MESSAGE_LENGTH];
-                MPI_Status status;
-
-                MPI_Recv(received_message, MAX_MESSAGE_LENGTH, MPI_CHAR, i, 100, MPI_COMM_WORLD, &status);
-                printf("Master: Message received from process %d : %s\n", i, received_message);
-            }
-            printf("Master: All messages received.\n");
+        for (int i = 1; i < size; i++) {
+            char sent_message[MAX_MESSAGE_LENGTH];
+            sprintf(sent_message, "Hello process %d, from Master.", i);
+            //Use tag 100 for receiving messages
+            MPI_Send(sent_message, MAX_MESSAGE_LENGTH, MPI_CHAR, i, 100, MPI_COMM_WORLD);
         }
+        printf("Master: All messages sent.\n");
     } else {
         // Slave processes
-        char message_to_send[MAX_MESSAGE_LENGTH];
+        char recieve_message[MAX_MESSAGE_LENGTH];
+        MPI_Status status;
 
-        // Construct a unique message based on the slave's rank
-        if (rank == 1) {
-            sprintf(message_to_send, "Hello, I am John");
-        } else if (rank == 2) {
-            sprintf(message_to_send, "Hello, I am Mary");
-        } else if (rank == 3) {
-            sprintf(message_to_send, "Hello, I am Susan");
-        } else {
-            // Generic message for other slaves
-            sprintf(message_to_send, "Hello, I am slave %d", rank);
-        }
 
-        // Send the string message to the master (rank 0)
+        // Send using Tag 100
         // The count is strlen(message_to_send) + 1 to include the null terminator
-        MPI_Send(message_to_send, strlen(message_to_send) + 1, MPI_CHAR, 0, 101, MPI_COMM_WORLD);
+        MPI_Recv(recieve_message, MAX_MESSAGE_LENGTH, MPI_CHAR, 0, 101, MPI_COMM_WORLD, &status);
+        printf("Slave %d: Received message: %s\n", rank, recieve_message);
     }
 
     MPI_Finalize();

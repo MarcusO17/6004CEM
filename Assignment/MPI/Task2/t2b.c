@@ -16,18 +16,15 @@ int main(int argc, char *argv[]) {
         // Master process
         printf("Master: Hello slaves give me your messages\n");
 
-        if (size == 1) {
-            printf("Master: No slaves to receive messages from.\n");
-        } else {
-            for (int i = 1; i < size; i++) {
-                char received_message[MAX_MESSAGE_LENGTH];
-                MPI_Status status;
+        for (int i = 1; i < size; i++) {
+            char received_message[MAX_MESSAGE_LENGTH];
+            MPI_Status status;
 
-                MPI_Recv(received_message, MAX_MESSAGE_LENGTH, MPI_CHAR, i, 0, MPI_COMM_WORLD, &status);
-                printf("Master: Message received from process %d : %s\n", i, received_message);
-            }
-            printf("Master: All messages received.\n");
+            MPI_Recv(received_message, MAX_MESSAGE_LENGTH, MPI_CHAR, i, 0, MPI_COMM_WORLD, &status);
+            printf("Master: Message received from process %d : %s\n", i, received_message);
         }
+        
+        printf("Master: All messages received.\n");
     } else {
         // Slave processes
         char message_to_send[MAX_MESSAGE_LENGTH];
